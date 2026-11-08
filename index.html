@@ -24,6 +24,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Pretendard', sans-serif; }
         .glass { background: rgba(18, 18, 22, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
@@ -59,7 +61,7 @@
                 안녕하세요, <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">엄태경</span>입니다.
             </h1>
             <p class="text-zinc-400 text-lg md:text-xl max-w-2xl mb-10 font-light leading-relaxed">
-                국민대학교 경영정보학부 3학년 학생으로, IT 기술과 Fusion 360(CAD)을 결합하여 도면 디자인 및 시스템적 사고 역량을 키워나가고 있습니다.
+                국민대학교 경영정보학부 3학년에 재학 중입니다. IT 기술과 Fusion 360(CAD)을 결합해 도면 디자인과 시스템적 사고 역량을 키워가고 있습니다.
             </p>
             <div class="flex flex-wrap gap-4">
                 <a href="#about" class="bg-white text-zinc-950 font-semibold px-6 py-3 rounded-xl hover:bg-zinc-200 transition">프로필 소개</a>
@@ -131,21 +133,36 @@
                 <h2 class="text-xs font-semibold uppercase tracking-widest text-blue-500 mb-2">Contact</h2>
                 <h3 class="text-3xl font-bold text-white tracking-tight mb-4">연락처 및 문의</h3>
                 <p class="text-zinc-400 text-sm mb-8">궁금하신 점이나 협업 관련 문의가 있으시면 아래 양식을 통해 메시지를 남겨주세요.</p>
-                <form onsubmit="event.preventDefault(); alert('메시지가 전송되었습니다!');" class="space-y-4 text-left">
+                <form id="contact-form" class="space-y-4 text-left">
                     <div>
                         <label class="block text-xs font-medium text-zinc-400 mb-1">Your Name</label>
-                        <input type="text" required class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition">
+                        <input id="input-name" type="text" required class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-zinc-400 mb-1">Email Address</label>
-                        <input type="email" required class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition">
+                        <input id="input-email" type="email" required class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-zinc-400 mb-1">Message</label>
-                        <textarea rows="4" required class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition"></textarea>
+                        <textarea id="input-message" rows="4" required class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition"></textarea>
                     </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-blue-500/20">Send Message</button>
+                    <button id="submit-btn" type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-blue-500/20">Send Message</button>
+                    <p id="form-status" class="text-sm text-center min-h-[1.25rem]"></p>
                 </form>
+            </div>
+        </section>
+
+        <!-- Guestbook Section -->
+        <section id="guestbook" class="max-w-6xl mx-auto px-6 py-20 border-t border-zinc-900 mb-20">
+            <div class="max-w-xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-xs font-semibold uppercase tracking-widest text-blue-500 mb-2">Guestbook</h2>
+                    <h3 class="text-3xl font-bold text-white tracking-tight mb-4">방명록</h3>
+                    <p class="text-zinc-400 text-sm">남겨주신 메시지가 이곳에 표시됩니다.</p>
+                </div>
+                <div id="guestbook-list" class="space-y-4">
+                    <p class="text-zinc-500 text-sm text-center">메시지를 불러오는 중...</p>
+                </div>
             </div>
         </section>
 
@@ -155,5 +172,137 @@
     <footer class="border-t border-zinc-900 py-8 text-center text-xs text-zinc-500">
         <p>&copy; 2026 Tae-gyeong Eom. All rights reserved.</p>
     </footer>
+
+    <!-- Supabase 연동 스크립트 -->
+    <script>
+        // ============================================================
+        // 1) Supabase 연결 정보 — 아래 두 값을 본인 것으로 채워주세요.
+        //    - SUPABASE_URL : Supabase 프로젝트의 API URL
+        //    - SUPABASE_KEY : Supabase 프로젝트의 Publishable key (anon key)
+        // ============================================================
+        const SUPABASE_URL = "https://vegeswxajphlhtftybxq.supabase.co/rest/v1/";
+        const SUPABASE_KEY = "sb_publishable_MjIKnzU_JEamI3WYw6KGBg_6JC1ix5k";
+
+        // Supabase 클라이언트 생성
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 자주 쓰는 요소 참조
+        const form = document.getElementById("contact-form");
+        const nameInput = document.getElementById("input-name");
+        const messageInput = document.getElementById("input-message");
+        const statusEl = document.getElementById("form-status");
+        const listEl = document.getElementById("guestbook-list");
+        const submitBtn = document.getElementById("submit-btn");
+
+        // 작성 시각을 읽기 좋은 형식으로 변환
+        function formatDate(value) {
+            if (!value) return "";
+            const d = new Date(value);
+            if (isNaN(d.getTime())) return "";
+            return d.toLocaleString("ko-KR", {
+                year: "numeric", month: "2-digit", day: "2-digit",
+                hour: "2-digit", minute: "2-digit"
+            });
+        }
+
+        // 저장된 메시지 불러와서 방명록에 그리기 (조회 / SELECT)
+        async function loadMessages() {
+            const { data, error } = await supabaseClient
+                .from("message")
+                .select("id, name, messege, created_at")
+                .order("created_at", { ascending: false });
+
+            if (error) {
+                listEl.innerHTML = "";
+                const p = document.createElement("p");
+                p.className = "text-red-400 text-sm text-center";
+                p.textContent = "메시지를 불러오지 못했습니다: " + error.message;
+                listEl.appendChild(p);
+                return;
+            }
+
+            // 목록 초기화
+            listEl.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                const p = document.createElement("p");
+                p.className = "text-zinc-500 text-sm text-center";
+                p.textContent = "아직 남겨진 메시지가 없습니다. 첫 메시지를 남겨보세요!";
+                listEl.appendChild(p);
+                return;
+            }
+
+            // 카드 생성 (textContent로 넣어 XSS 방지)
+            data.forEach(function (row) {
+                const card = document.createElement("div");
+                card.className = "glass rounded-2xl p-6 border border-zinc-800";
+
+                const header = document.createElement("div");
+                header.className = "flex items-center justify-between mb-2";
+
+                const nameEl = document.createElement("span");
+                nameEl.className = "font-bold text-white";
+                nameEl.textContent = row.name || "익명";
+
+                const dateEl = document.createElement("span");
+                dateEl.className = "text-xs text-zinc-500";
+                dateEl.textContent = formatDate(row.created_at);
+
+                header.appendChild(nameEl);
+                header.appendChild(dateEl);
+
+                const msgEl = document.createElement("p");
+                msgEl.className = "text-zinc-400 text-sm whitespace-pre-wrap break-words";
+                msgEl.textContent = row.messege || "";
+
+                card.appendChild(header);
+                card.appendChild(msgEl);
+                listEl.appendChild(card);
+            });
+        }
+
+        // 폼 제출 시 Supabase에 저장 (저장 / INSERT)
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const name = nameInput.value.trim();
+            const messege = messageInput.value.trim();
+
+            if (!name || !messege) {
+                statusEl.className = "text-sm text-center min-h-[1.25rem] text-red-400";
+                statusEl.textContent = "이름과 메시지를 모두 입력해주세요.";
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.classList.add("opacity-60", "cursor-not-allowed");
+            statusEl.className = "text-sm text-center min-h-[1.25rem] text-zinc-400";
+            statusEl.textContent = "저장 중...";
+
+            // message 테이블에 name, messege 저장 (id, created_at은 Supabase가 자동 처리)
+            const { error } = await supabaseClient
+                .from("message")
+                .insert([{ name: name, messege: messege }]);
+
+            submitBtn.disabled = false;
+            submitBtn.classList.remove("opacity-60", "cursor-not-allowed");
+
+            if (error) {
+                statusEl.className = "text-sm text-center min-h-[1.25rem] text-red-400";
+                statusEl.textContent = "저장에 실패했습니다: " + error.message;
+                return;
+            }
+
+            statusEl.className = "text-sm text-center min-h-[1.25rem] text-green-400";
+            statusEl.textContent = "메시지가 저장되었습니다. 감사합니다!";
+            form.reset();
+
+            // 저장 직후 방명록 새로고침
+            loadMessages();
+        });
+
+        // 페이지가 열릴 때 기존 메시지 불러오기
+        loadMessages();
+    </script>
 </body>
 </html>
