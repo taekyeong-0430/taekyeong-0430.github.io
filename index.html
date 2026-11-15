@@ -180,7 +180,7 @@
         //    - SUPABASE_URL : Supabase 프로젝트의 API URL
         //    - SUPABASE_KEY : Supabase 프로젝트의 Publishable key (anon key)
         // ============================================================
-        const SUPABASE_URL = "https://vegeswxajphlhtftybxq.supabase.co/rest/v1/";
+        const SUPABASE_URL = "https://vegeswxajphlhtftybxq.supabase.co";
         const SUPABASE_KEY = "sb_publishable_MjIKnzU_JEamI3WYw6KGBg_6JC1ix5k";
 
         // Supabase 클라이언트 생성
@@ -193,6 +193,29 @@
         const statusEl = document.getElementById("form-status");
         const listEl = document.getElementById("guestbook-list");
         const submitBtn = document.getElementById("submit-btn");
+
+        // 저장 상태 안내를 박스 형태로 표시 (성공/실패/진행중을 아이콘·문구·색·박스로 구분)
+        // type: "success" | "error" | "pending"
+        function showStatus(type, message) {
+            const base = "text-sm rounded-xl px-4 py-3 border flex items-center justify-center gap-2 min-h-[1.25rem]";
+            if (type === "success") {
+                statusEl.className = base + " bg-green-500/10 border-green-500/30 text-green-400";
+                statusEl.textContent = "✓ " + message;
+            } else if (type === "error") {
+                statusEl.className = base + " bg-red-500/10 border-red-500/30 text-red-400";
+                statusEl.textContent = "⚠ " + message;
+            } else {
+                // pending (진행 중): 테두리 없는 가벼운 안내
+                statusEl.className = "text-sm text-center text-zinc-400 min-h-[1.25rem]";
+                statusEl.textContent = message;
+            }
+        }
+
+        // 상태 안내 비우기
+        function clearStatus() {
+            statusEl.className = "text-sm text-center min-h-[1.25rem]";
+            statusEl.textContent = "";
+        }
 
         // 작성 시각을 읽기 좋은 형식으로 변환
         function formatDate(value) {
@@ -269,15 +292,13 @@
             const messege = messageInput.value.trim();
 
             if (!name || !messege) {
-                statusEl.className = "text-sm text-center min-h-[1.25rem] text-red-400";
-                statusEl.textContent = "이름과 메시지를 모두 입력해주세요.";
+                showStatus("error", "이름과 메시지를 모두 입력해주세요.");
                 return;
             }
 
             submitBtn.disabled = true;
             submitBtn.classList.add("opacity-60", "cursor-not-allowed");
-            statusEl.className = "text-sm text-center min-h-[1.25rem] text-zinc-400";
-            statusEl.textContent = "저장 중...";
+            showStatus("pending", "저장 중...");
 
             // message 테이블에 name, messege 저장 (id, created_at은 Supabase가 자동 처리)
             const { error } = await supabaseClient
@@ -288,13 +309,11 @@
             submitBtn.classList.remove("opacity-60", "cursor-not-allowed");
 
             if (error) {
-                statusEl.className = "text-sm text-center min-h-[1.25rem] text-red-400";
-                statusEl.textContent = "저장에 실패했습니다: " + error.message;
+                showStatus("error", "저장에 실패했습니다: " + error.message);
                 return;
             }
 
-            statusEl.className = "text-sm text-center min-h-[1.25rem] text-green-400";
-            statusEl.textContent = "메시지가 저장되었습니다. 감사합니다!";
+            showStatus("success", "메시지가 저장되었습니다. 감사합니다!");
             form.reset();
 
             // 저장 직후 방명록 새로고침
